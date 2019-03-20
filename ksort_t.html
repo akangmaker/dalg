@@ -1,0 +1,750 @@
+﻿<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+		<style>.myColor{ background-color:rgb(60,79,57); color:rgb(248,147,29); }</style></head>
+	<body>
+		<div  style="margin:0 auto;width:800;border:1px solid green;background-image:url(http://www.cqyc.com/webschool/xheditor/upload/10001060/刘刚计/2017/0112/News/img/xxdm.jpg);">
+			<h3>算法演示（Ver0.27完善中）</h3>
+			排序前:
+			<div id="text1" style="display:inline-block"></div>
+			<br/>排序后:
+			<div id="text2" style="display:inline-block"></div>
+			<br/>
+			<div id="text3" style="display:inline-block"></div>&nbsp;动画时间只作演示参考，不代表程序排序耗时
+			<br/>数据量
+			<input id="dataNum" size="3" value="10" />单位时间(毫秒)
+			<input id="unitDur" size="3" value="200" />基本宽度
+			<input id="basicWidth" size="3" value="20" />基本高度
+			<input id="basicHeight" size="3" value="2" />选择动画
+			<select id="animation">
+				<option value="bubbleSort">冒泡排序</option>
+				<option value="quickSort">快速排序</option>
+				<option value="insertSort">插入排序</option>
+				<option value="selectSort">选择排序</option>
+				<option value="shellSort">希尔排序</option>
+				<option value="mergeSort">归并排序</option></select>
+			<input id="set" type="button" value="设置" size="10" />
+			<input id="refresh" type="button" value="刷新" size="10" />
+			<svg id="main" style="display:block;width:800;height:600;margin:0 auto;background-color:rgba(17,63,61,0.7);"></svg>
+			<div style="display:block;float:right;height:40;">
+				<input id="contral" type="button" value="开始" size="10" />
+				<input id="reset" type="button" value="重置" size="10" />
+				<input id="svgBackground" type="button" value="背景" size="10" />
+				<br/></div>
+			<div style="height:20">设置参考：{100,40,4,2},{50,100,8,2},{20,200,20,2},{10,200,20,2},{7,200,20,2}</div>
+		</div>
+		<script>//说明：
+			//作者 赵康
+			//版本 0.28
+			//最后修改时间 2017-4-1 8:39
+			//备注：
+			//代码格式化工具 http://tool.oschina.net/codeformat/js
+			//@function Conf 配置和获取配置参数，单例，不能作为其他对象原型！不能删除
+			var Conf = function() {
+				var attr = {
+					//基础参数
+					refreshTime: 20,//动画刷新时间 ->refreshTime
+					unitDur: 200,//动画节点单位用时间
+					//beginX:40,
+					//beginY:40,
+					basicWidth: 20,
+					basicHeight: 2,
+					//spacing:1,//间距，单位量，1为1个单位
+					dataNum: 10,//带排序数据量
+
+					//用户参数
+					animation: "bubbleSort"
+				};
+				return {
+					get: function(name) {
+						return attr[name];
+					},
+					set: function(name, val, mark) {
+
+						if (attr.hasOwnProperty(name)) {
+							if (!isNaN(val) || "NaN" === mark) attr[name] = val;
+						}
+					}
+				};
+			} ();
+
+			//------测试部分--------------
+			
+			window.onload = function() {
+
+				window.alert("在观看演示动画之前，您需要进行基本参数设置...");
+
+				var timeLine = new TimeLine();
+				var rectGroup = new RectGroup();
+
+				document.getElementById("refresh").onclick = function() {
+					location.reload();
+				}
+
+				document.getElementById("set").onclick = function() {
+					if (function() {
+						Conf.set("dataNum", document.getElementById("dataNum").value);
+						Conf.set("unitDur", document.getElementById("unitDur").value);
+						Conf.set("basicWidth", document.getElementById("basicWidth").value);
+						Conf.set("basicHeight", document.getElementById("basicHeight").value);
+
+						var myselect = document.getElementById("animation");
+						var animation = myselect.options[myselect.selectedIndex].value;
+						Conf.set("animation", animation, "NaN");
+						return true;
+					} ()) {
+
+						window.alert("动画已准备完毕！");
+						testA();
+					} else {
+						window.alert("程序出错，请重试!");
+					}
+				}
+				
+				
+				var setBG =function(){
+					var flag=true;
+					return function(){
+						flag = !flag;
+						document.getElementById("main").style =  flag ? "display:block;width:800;height:600;margin:0 auto;background-color:rgba(17,63,61,0.7);"
+							: "display:block;width:800;height:600;margin:0 auto;background-color:rgb(17,63,61);";
+					};
+				}
+				document.getElementById("svgBackground").onclick = setBG();
+			}
+			
+			
+
+			function testA() {
+				var timeLine = new TimeLine();
+
+				var rectGroup = new RectGroup();
+				for (var i = 0; i < Conf.get("dataNum"); i++) {
+					rectGroup.add(createRect("rect" + i), Math.ceil(Math.random() * 90 + 10));
+					rectGroup.rects[i].setAttribute("style", "fill:" + getRandomColor());
+				}
+				rectGroup.active("main");
+				rectGroup.showVals("text1");
+				rectGroup.setAnimation(timeLine, Conf.get("animation"));
+				rectGroup.showVals("text2");
+
+				countDown.set("text3", Math.ceil(timeLine.dur / 1000)); //初始化计时器
+				var flag = false;
+				var btnCtr = document.getElementById("contral");
+				btnCtr.onclick = function() {
+					if (flag) {
+						timeLine.pause();
+						countDown.pause();
+						btnCtr.value = "继续";
+					} else {
+						timeLine.action();
+						countDown.play();
+						btnCtr.value = "暂停";
+					}
+					flag = !flag;
+				}
+				
+				document.onkeydown=function(event){
+					var e = event || window.event || arguments.callee.caller.arguments[0];
+					
+						if(e && e.keyCode==113){ // 按 space
+							if (flag) {
+								timeLine.pause();
+								countDown.pause();
+								btnCtr.value = "继续";
+							} else {
+								timeLine.action();
+								countDown.play();
+								btnCtr.value = "暂停";
+							}
+							flag = !flag;  
+						}
+					
+				}; 
+				
+
+				var btnReset = document.getElementById("reset");
+				btnReset.onclick = function() {
+					flag = false;
+					btnCtr.value = "播放";
+					countDown.reset();
+					rectGroup.resetAnimation(timeLine);
+				}
+
+			}
+
+			function testB() {
+				var rect3 = createRect("rect3");
+				rect3.setAttribute("x", 200);
+				rect3.setAttribute("style", "fill:red");
+				rect3.active("main");
+				
+				var rect4 = createRect("rect4");
+				rect3.setAttribute("y", 20);
+				rect4.active("main");
+				
+				var rect5 = createRect("rect5");
+				rect5.setAttribute("y", 40);
+				rect5.setAttribute("style", "fill:lightgray");
+				rect5.active("main");
+
+				var timeLine1 = new TimeLine();
+				timeLine1.add(rect3, {
+					x: 0
+				},
+				1000);
+				timeLine1.add(rect4, {
+					x: 200
+				},
+				1000);
+				timeLine1.add(rect3, {
+					y: 50
+				},
+				1000);
+				timeLine1.add(rect3, {
+					width: 200
+				},
+				1000);
+				timeLine1.add(rect3, {
+					height: 50
+				},
+				1000);
+				timeLine1.printVars();
+				timeLine1.action();
+
+				//var timeLine2 = new TimeLine();
+				//timeLine2.add(rect5,{x:400},3000);
+				//timeLine2.action();
+			}
+
+			//----------------------------
+			var countDown = function() {
+				var itval = 0,
+					cur = 0,
+					time = 0;
+				var div;
+
+				return {
+					set: function(domId, t) {
+						div = document.getElementById(domId);
+						time = cur = t;
+						div.innerHTML = cur + "s/" + time + "s";
+						return this;
+					},
+					play: function() {
+						if (!itval) itval = setInterval(function() {
+							if (cur > 0) div.innerHTML = (cur -= 1) + "s/" + time + "s";
+							else itval = clearInterval(itval);
+						},
+						1000);
+					},
+					pause: function() {
+						if (itval) itval = clearInterval(itval);
+					},
+					restart: function() {
+						this.reset();
+						this.play();
+					},
+					reset: function() {
+						if (itval) itval = clearInterval(itval);
+						cur = time;
+						div.innerHTML = cur + "s/" + time + "s";
+					},
+					clear: function() {
+						if (itval) itval = clearInterval(itval);
+						div.innerHTML = "";
+					}
+				};
+			} ();
+
+			var getSpriteAttr = function(rect) {
+				return {
+					x: parseInt(rect.getAttribute("x")),
+					y: parseInt(rect.getAttribute("y")),
+					width: parseInt(rect.getAttribute("width")),
+					height: parseInt(rect.getAttribute("height")),
+					style: rect.getAttribute("style")
+				};
+			}
+
+			var getRandomColor = function() {
+				return '#' +
+				function(color) {
+					return (color += '0123456789abcdef' [Math.floor(Math.random() * 16)]) && (color.length == 6) ? color: arguments.callee(color);
+				} ('');
+			};
+
+			var createRect = function(rectId) {
+				var rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+				rect.setAttribute("id", rectId);
+				rect.setAttribute("x", 0);
+				rect.setAttribute("y", 0);
+				rect.setAttribute("width", 50);
+				rect.setAttribute("height", 20);
+				rect.setAttribute("style", "fill:green");
+				rect.active = function(content) {
+					var content = document.getElementById(content);
+					content.appendChild(rect);
+				}
+				return rect;
+			};
+
+			//@版本记录：0.3
+			//扩展x,y,width,height属性动画
+			//添加pause()方法，可暂停动画
+			//修正时间线节点属性 fromVars,toVars,curVars,unitVars，以修正异常动画
+			//@尚存问题:
+			//动画播放过程中重复、回退等
+			var TimeLine = function() {
+				this.itval = 0;
+				this.line = [];//{sprite,toVars,fromVars,curVars,unitVars,dur:本节点动画时间}
+				this.i = 0; //记录动画过程中，当前是第几个动画
+				this.appearSprites = []; //动画进行中动态更新
+				this.dur=0;//动画总时间  added 2017-3-31
+				//this.repeat=1;
+				//@param sprite Object 动画sprite
+				//@param vars Object 存放sprite目标状态信息
+				//@param dur  Number 动画持续时间/毫秒
+				this.add = function(sprite, toVars, dur) {
+
+					var index = -1;
+					for (var i = this.appearSprites.length - 1; i >= 0; i--) {
+						if (this.appearSprites[i].sprite === sprite) {
+							index = i;
+							break;
+						}
+					}
+
+					var that = this;
+					this.line.push(function() {
+						var lineNode = {};
+
+						lineNode.sprite = sprite;
+						lineNode.dur = dur >= Conf.get("refreshTime") ? dur: Conf.get("refreshTime");
+						
+						that.dur += lineNode.dur;
+
+						lineNode.fromVars = function() {
+							var vars = {};
+							if (index === -1) vars = getSpriteAttr(sprite);
+							else {
+								var last_i = that.appearSprites[index].last_i;
+								console.log("i=" + that.line.length + ",last_i=" + last_i);
+								for (p in that.line[last_i].fromVars) {
+									if (that.line[last_i].fromVars.hasOwnProperty(p)) vars[p] = that.line[last_i].fromVars[p];
+									if (that.line[last_i].toVars.hasOwnProperty(p)) vars[p] = that.line[last_i].toVars[p];
+								}
+							}
+							return vars;
+						} ();
+
+						lineNode.toVars = function() {
+							var vars = {};
+							for (p in toVars) {
+								if (toVars.hasOwnProperty(p)) vars[p] = typeof toVars[p] === "number" ? Math.ceil(toVars[p]) : toVars[p];
+							}
+							return vars;
+						} ();
+
+						lineNode.curVars = function() {
+							var vars = {};
+							for (p in lineNode.fromVars) {
+								if (lineNode.fromVars.hasOwnProperty(p)) vars[p] = lineNode.fromVars[p];
+							}
+							return vars;
+						} ();
+
+						lineNode.unitVars = function() {
+							var vars = {};
+							for (p in lineNode.toVars) {
+								if (lineNode.toVars.hasOwnProperty(p)) vars[p] = Math.ceil((lineNode.toVars[p] - lineNode.fromVars[p]) * Conf.get("refreshTime") / dur);
+							}
+							return vars;
+						} ();
+
+						return lineNode;
+					} ());
+
+					if (index > -1) this.appearSprites[index].last_i = this.line.length - 1;
+					else this.appearSprites.push({
+						sprite: sprite,
+						last_i: this.line.length - 1
+					});
+				}
+
+				this.pause = function() {
+					if (this.itval) this.itval = clearInterval(this.itval);
+				}
+
+				this.stop = function() {
+					if (this.itval) this.itval = clearInterval(this.itval);
+					this.i = 0;
+					
+					for (var i = 0; i < this.line.length; i++) {
+						for (p in this.line[i].fromVars) {
+							if (this.line[i].fromVars.hasOwnProperty(p) && this.line[i].curVars[p] !== this.line[i].fromVars[p]) this.line[i].curVars[p] = this.line[i].fromVars[p];
+						}
+					}
+				}
+
+				this.action = function() {
+
+					//结束当前（可能存在的）动画
+					if (this.itval) this.itval = clearInterval(this.itval);
+					var that = this;
+					this.itval = setInterval(function() {
+
+						var lineNode = that.line[that.i];
+
+						if (!lineNode) {
+							if (this.itval) that.itval = clearInterval(that.itval);
+						} else {
+							var flag = true;
+							for (p in lineNode.curVars) {
+								if (lineNode.curVars.hasOwnProperty(p) && lineNode.toVars.hasOwnProperty(p)) {
+
+									if (lineNode.unitVars[p] < 0 && lineNode.curVars[p] > lineNode.toVars[p] || lineNode.unitVars[p] > 0 && lineNode.curVars[p] < lineNode.toVars[p]) lineNode.curVars[p] += lineNode.unitVars[p];
+									else lineNode.curVars[p] = lineNode.toVars[p];
+
+									if (lineNode.curVars[p] !== lineNode.toVars[p]) flag = false;
+
+									lineNode.sprite.setAttribute(p, lineNode.curVars[p]);
+								}
+							}
+							if (flag) that.i++;
+						}
+					},
+					Conf.get("refreshTime"));
+				}
+			};
+
+			var Group = function(){
+				
+			
+			}
+			
+			var TextGroup =function(){
+				
+			
+			}
+
+			
+			var RectGroup = function() {
+				this.vals = [];
+				this.vals_back = [];
+				this.rects = [];
+				this.rects_back = [];
+				
+				this.computeDurTime=function(vars){  //{x1,y1,x2,y2}传入参数需保证为非负整数
+					var dist = 0;
+					if(vars.hasOwnProperty("x1") && vars.hasOwnProperty("x2"))
+						dist = Math.abs(vars.x1-vars.x2);
+						
+					if(vars.hasOwnProperty("y1") && vars.hasOwnProperty("y2"))
+						dist = dist ? 
+							Math.sqrt(Math.pow(dist,2) + Math.pow(Math.abs(vars.y1-vars.y2),2))
+							:
+							Math.abs(vars.y1-vars.y2);
+							
+					return Conf.get("unitDur") * Math.ceil(Math.log(Math.E + dist));
+					
+				}
+
+				this.swap = function(timeLine, i, j) {
+					var tmpVal = this.vals[j];
+					this.vals[j] = this.vals[i];
+					this.vals[i] = tmpVal;
+
+					var tmpRect = this.rects[j];
+					this.rects[j] = this.rects[i];
+					this.rects[i] = tmpRect;
+	
+					timeLine.add(this.rects[i], {
+						x: i * Conf.get("basicWidth") * 2
+					},
+					this.computeDurTime({x1:j,x2:i}));
+					timeLine.add(this.rects[j], {
+						x: j * Conf.get("basicWidth") * 2
+					},
+					this.computeDurTime({x1:j,x2:i}));
+				}
+
+				this.showVals = function(domId) {
+					var that = this;
+					document.getElementById(domId).innerHTML = function() {
+						var str = "";
+						for (var i = 0; i < that.vals.length; i++) {
+							str += " " + that.vals[i];
+						}
+						return str;
+					} ();
+				}
+
+				this.bubbleSort = function(timeLine) {
+					for (var i = this.vals.length - 1; i > 0; i--) for (var j = 0; j < i; j++) if (this.vals[j] > this.vals[j + 1]) this.swap(timeLine, j, j + 1);
+				}
+
+				this.quickSort = function(timeLine, left, right) {
+					var i = left,
+					j = right;
+					while (i < j) {
+						while (i < j && this.vals[i] <= this.vals[j]) i++;
+						while (i < j && this.vals[i] <= this.vals[j]) j--;
+						if (i < j) this.swap(timeLine, i, j);
+					}
+					if (left < i - 1) this.quickSort(timeLine, left, i - 1);
+					if (i + 1 < right) this.quickSort(timeLine, i + 1, right);
+				}
+				
+				this.selectSort=function(timeLine){
+					for(var i=0;i<this.vals.length;i++){
+						var k = i;
+						for(var j=i+1;j<this.vals.length;j++){
+							if(this.vals[k]>this.vals[j]) k=j;
+						}
+						
+						if(i<k)
+							this.swap(timeLine,i,k);
+					}
+				
+				}
+				/*
+				堆排序 c 算法
+				#include <stdio.h>
+				//array是待调整的堆数组，i是待调整的数组元素的位置，nlength是数组的长度
+				//本函数功能是：根据数组array构建大根堆
+				void HeapAdjust(int array[],int i,int nLength)
+				{
+					int nChild;
+					int nTemp;
+					for(;2*i+1<nLength;i=nChild)
+					{
+						//子结点的位置=2*（父结点位置）+1
+						nChild=2*i+1;
+						//得到子结点中较大的结点
+						if(nChild<nLength-1&&array[nChild+1]>array[nChild])++nChild;
+						//如果较大的子结点大于父结点那么把较大的子结点往上移动，替换它的父结点
+						if(array[i]<array[nChild])
+						{
+							nTemp=array[i];
+							array[i]=array[nChild];
+							array[nChild]=nTemp; 
+						}
+						else break; //否则退出循环
+					}
+				}
+				//堆排序算法
+				void HeapSort(int array[],int length)
+				{
+					int i;
+					//调整序列的前半部分元素，调整完之后第一个元素是序列的最大的元素
+					//length/2-1是最后一个非叶节点，此处"/"为整除
+					for(i=length/2-1;i>=0;--i)
+					HeapAdjust(array,i,length);
+					//从最后一个元素开始对序列进行调整，不断的缩小调整的范围直到第一个元素
+					for(i=length-1;i>0;--i)
+					{
+						//把第一个元素和当前的最后一个元素交换，
+						//保证当前的最后一个位置的元素都是在现在的这个序列之中最大的
+						array[i]=array[0]^array[i];
+						array[0]=array[0]^array[i];
+						array[i]=array[0]^array[i];
+						//不断缩小调整heap的范围，每一次调整完毕保证第一个元素是当前序列的最大值
+						HeapAdjust(array,0,i);
+					}
+				}
+				
+				*/
+				
+				
+				this.insertSort=function(timeLine){
+					for(var i=1;i<this.vals.length;i++){
+						var k = i;
+						for(var j=0;j<i;j++){
+							if(this.vals[k]<this.vals[j]){
+								k = j;
+								break;
+							}
+						}
+						
+						var tmp =this.vals[i];
+						var tmRect =this.rects[i];
+						timeLine.add(this.rects[i],{y:200},this.computeDurTime({}));
+						
+						for(var j=i;j>k;j--){
+							this.vals[j] = this.vals[j-1];
+							this.rects[j] = this.rects[j-1];
+							timeLine.add(this.rects[j],{x: j * Conf.get("basicWidth") * 2},this.computeDurTime({}));
+						}
+						
+						this.vals[k] = tmp;
+						this.rects[k] = tmRect;
+						timeLine.add(this.rects[k],{x: k * Conf.get("basicWidth") * 2,},this.computeDurTime({x1:k,x2:i}));
+						timeLine.add(this.rects[k],{y:0},this.computeDurTime({}));
+					}
+				
+				}
+				
+				this.shellSort=function(timeLine){
+				
+					for(var step=Math.floor(this.vals.length/2);step>=1;step=Math.floor(step/2)){
+						for(var begin=0;begin<step;begin++){
+							for(var i=begin+step;i<this.vals.length;i+=step){
+								var k = i;
+								for(var j=begin;j<i;j+=step){
+									if(this.vals[k]<this.vals[j]){
+										k = j;
+										break;
+									}
+								}
+								
+								var tmp =this.vals[i];
+								var tmRect =this.rects[i];
+								timeLine.add(this.rects[i],{y:200},this.computeDurTime({}));
+								
+								for(var j=i;j>k;j-=step){
+									this.vals[j] = this.vals[j-step];
+									this.rects[j] = this.rects[j-step];
+									timeLine.add(this.rects[j],{x: j * Conf.get("basicWidth") * 2},this.computeDurTime({x1:0,x2:step}));
+								}
+								
+								this.vals[k] = tmp;
+								this.rects[k] = tmRect;
+								timeLine.add(this.rects[k],{x: k * Conf.get("basicWidth") * 2,},this.computeDurTime({x1:k,x2:i}));
+								timeLine.add(this.rects[k],{y:0},this.computeDurTime({}));
+							}
+
+						}
+					
+					}
+				
+				
+				}
+				
+
+				this.mergeSort = function(timeLine, left, right, tmpVals, tmpRects) {
+					if (left >= right) return;
+
+					var mid = parseInt((left + right) / 2);
+					this.mergeSort(timeLine, left, mid, tmpVals, tmpRects);
+					this.mergeSort(timeLine, mid + 1, right, tmpVals, tmpRects);
+
+					var i = left,
+					j = mid + 1,
+					k = left;
+					
+					var durTime = 0;
+					while (i <= mid && j <= right) {
+						if (this.vals[i] <= this.vals[j]) {
+							durTime = this.computeDurTime({x1:k,x2:i});
+							tmpRects[k] = this.rects[i];
+							tmpVals[k++] = this.vals[i++];
+						} else {
+							durTime = this.computeDurTime({x1:k,x2:j});
+							tmpRects[k] = this.rects[j];
+							tmpVals[k++] = this.vals[j++];
+						}
+						timeLine.add(tmpRects[k - 1], {
+							x: (k - 1) * Conf.get("basicWidth") * 2,
+							y: 200
+						},
+						durTime);
+
+					}
+
+					while (i <= mid) {
+						tmpRects[k] = this.rects[i];
+						tmpVals[k++] = this.vals[i++];
+						timeLine.add(tmpRects[k - 1], {
+							x: (k - 1) * Conf.get("basicWidth") * 2,
+							y: 200
+						},
+						 this.computeDurTime({x1:k,x2:i}));
+					}
+
+					while (j <= right) {
+						tmpRects[k] = this.rects[j];
+						tmpVals[k++] = this.vals[j++];
+						timeLine.add(tmpRects[k - 1], {
+							x: (k - 1) * Conf.get("basicWidth") * 2,
+							y: 200
+						},
+						 this.computeDurTime({x1:k,x2:j}));
+					}
+
+					while ((k--) > left) {
+						timeLine.add(tmpRects[k], {y:0},this.computeDurTime(new Object()));
+						this.rects[k] = tmpRects[k];
+						this.vals[k] = tmpVals[k];
+					}
+				}
+				
+				// TODO:
+				this.bucketSort=function(timeLine){
+					var buket=[];
+					var sort=function(){
+						
+					}
+				}
+
+				
+
+				
+				
+				this.setAnimation = function(timeLine, animateName) {
+					switch (animateName) {
+					case "quickSort":
+						this.quickSort(timeLine, 0, this.vals.length - 1);
+						break;
+					case "bubbleSort":
+						this.bubbleSort(timeLine);
+						break;
+					case "insertSort":
+						this.insertSort(timeLine);
+						break;
+					case "selectSort":
+						this.selectSort(timeLine);
+						break;
+					case "shellSort":
+						this.shellSort(timeLine);
+						break;
+					case "mergeSort":
+						this.mergeSort(timeLine, 0, this.vals.length - 1, new Array(), new Array());
+					default:
+						break;
+					}
+				}
+				
+				
+
+				this.resetAnimation = function(timeLine) {
+					timeLine.stop();
+					for (var i = 0; i < this.vals_back.length; i++) {
+						this.vals[i] = this.vals_back[i];
+
+						this.rects[i] = this.rects_back[i];
+						this.rects[i].setAttribute("x", i * Conf.get("basicWidth") * 2);
+						this.rects[i].setAttribute("y", 0);
+					}
+				}
+
+				this.active = function(content) {
+					for (var i = 0; i < this.rects.length; i++) this.rects[i].active(content);
+				}
+
+				this.add = function(rect, val) {
+					var i = this.vals.length;
+					this.rects[i] = rect;
+					this.vals[i] = val ? val: i;
+					this.rects[i].setAttribute("x", i * Conf.get("basicWidth") * 2);
+					this.rects[i].setAttribute("width", Conf.get("basicWidth"));
+					this.rects[i].setAttribute("height", this.vals[i] * Conf.get("basicHeight"));
+
+					//备份数据
+					this.vals_back[i] = this.vals[i];
+					this.rects_back[i] = this.rects[i];
+				}
+			}</script>
+	</body>
+
+</html>
