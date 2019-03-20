@@ -1,0 +1,2 @@
+# dalg
+Algorithm dynamic demonstration
